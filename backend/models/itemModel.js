@@ -33,7 +33,6 @@ const itemSchema = new mongoose.Schema(
 
 // Index for better query performance
 itemSchema.index({ user: 1, expiry: 1 });
-itemSchema.index({ sku: 1 });
 
 const Item = mongoose.model("Item", itemSchema);
 export default Item;

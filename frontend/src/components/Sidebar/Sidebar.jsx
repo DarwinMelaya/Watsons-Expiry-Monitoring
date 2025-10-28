@@ -1,4 +1,4 @@
-import { LayoutDashboard, BarChart3, LogOut } from "lucide-react";
+import { LayoutDashboard, BarChart3, Settings, LogOut } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -19,6 +19,12 @@ const Sidebar = ({ onNavigate }) => {
       text: "Monitoring",
       path: "/monitoring",
       isActive: location.pathname === "/monitoring",
+    },
+    {
+      icon: Settings,
+      text: "Maintenance",
+      path: "/maintenance",
+      isActive: location.pathname === "/maintenance",
     },
   ];
 
