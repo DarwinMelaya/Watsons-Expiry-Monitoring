@@ -1,37 +1,65 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { LayoutDashboard, BarChart3 } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const Sidebar = ({ onNavigate }) => {
-  const location = useLocation();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const isActive = (path) => location.pathname === path;
-
-  const menuItems = [
-    { name: "Dashboard", path: "/dashboard" },
-    { name: "Monitoring", path: "/monitoring" },
+  const navigationItems = [
+    {
+      icon: LayoutDashboard,
+      text: "Dashboard",
+      path: "/dashboard",
+      isActive: location.pathname === "/dashboard",
+    },
+    {
+      icon: BarChart3,
+      text: "Monitoring",
+      path: "/monitoring",
+      isActive: location.pathname === "/monitoring",
+    },
   ];
 
-  const handleNavigate = (path) => {
+  const handleNavigation = (path) => {
     navigate(path);
-    if (onNavigate) {
-      onNavigate();
-    }
+    if (typeof onNavigate === "function") onNavigate();
+  };
+
+  const handleLogout = () => {
+    // Clear localStorage
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    // Redirect to login page
+    navigate("/login");
+    if (typeof onNavigate === "function") onNavigate();
   };
 
   return (
-    <div className="h-screen w-64 bg-white shadow-xl relative">
-      {/* Header Section */}
-      <div className="bg-[#019e97] px-6 py-6 text-center relative">
+    <div className="bg-[#019e97] h-screen w-64 flex flex-col">
+      {/* Logo - Fixed at top */}
+      <div className="p-6 border-b border-[#019e97]/20 flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white">
+            <span className="text-sm font-bold text-[#019e97]">W</span>
+          </div>
+          <div className="flex flex-col">
+            <h1 className="text-xl font-semibold">
+              <span className="text-white">WATSONS</span>
+            </h1>
+            <p className="text-xs text-white/80">Expiry Monitoring</p>
+          </div>
+        </div>
         {/* Close button for mobile */}
         {onNavigate && (
           <button
             onClick={onNavigate}
-            className="absolute top-3 right-3 text-white hover:text-gray-200 transition-colors md:hidden"
+            className="absolute top-3 right-3 text-white hover:text-white/80 transition-colors md:hidden"
             aria-label="Close menu"
           >
             <svg
-              width="24"
-              height="24"
+              width="20"
+              height="20"
               viewBox="0 0 24 24"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
@@ -45,34 +73,74 @@ const Sidebar = ({ onNavigate }) => {
             </svg>
           </button>
         )}
-        <h2 className="text-2xl font-bold text-white">Watsons</h2>
-        <p className="text-white/90 text-xs">Expiry Monitoring</p>
       </div>
 
-      {/* Navigation Section */}
-      <nav className="mt-4 px-4 space-y-2">
-        {menuItems.map((item) => {
-          const active = isActive(item.path);
+      {/* Navigation Items - Scrollable */}
+      <nav
+        className="flex-1 overflow-y-auto p-6 space-y-4"
+        style={{
+          scrollbarWidth: "thin",
+          scrollbarColor: "#019e97/30 #019e97",
+        }}
+      >
+        <style>{`
+          nav::-webkit-scrollbar {
+            width: 6px;
+          }
+          nav::-webkit-scrollbar-track {
+            background: #019e97;
+            border-radius: 3px;
+          }
+          nav::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+            transition: background 0.2s ease;
+          }
+          nav::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+          }
+          nav::-webkit-scrollbar-corner {
+            background: #019e97;
+          }
+        `}</style>
 
-          return (
-            <button
-              key={item.path}
-              onClick={() => handleNavigate(item.path)}
-              className={`w-full text-left px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
-                active
-                  ? "bg-[#019e97] text-white shadow-lg transform scale-[1.02]"
-                  : "text-gray-700 hover:bg-gray-100 hover:text-[#019e97]"
-              }`}
-            >
-              {item.name}
-            </button>
-          );
-        })}
+        {navigationItems.map((item, index) => (
+          <div
+            key={index}
+            onClick={() => handleNavigation(item.path)}
+            className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors relative ${
+              item.isActive
+                ? "text-white bg-white/20"
+                : "text-white/80 hover:bg-white/10"
+            }`}
+          >
+            <div className="flex items-center space-x-3">
+              <item.icon
+                size={20}
+                className={item.isActive ? "text-white" : "text-white/80"}
+              />
+              <span
+                className={
+                  item.isActive ? "text-white font-medium" : "text-white/80"
+                }
+              >
+                {item.text}
+              </span>
+            </div>
+
+            {/* Active indicator bar */}
+            {item.isActive && (
+              <div className="absolute right-0 top-0 bottom-0 w-1 bg-white rounded-l-full"></div>
+            )}
+          </div>
+        ))}
       </nav>
 
       {/* Footer Section */}
-      <div className="absolute bottom-0 left-0 right-0 px-6 py-4 bg-gray-50 text-center">
-        <p className="text-xs text-gray-600">© 2024 Watsons</p>
+      <div className="border-t border-white/20 p-4 flex-shrink-0">
+        <p className="text-xs text-white/60 text-center">
+          © {new Date().getFullYear()} Watsons
+        </p>
       </div>
     </div>
   );
