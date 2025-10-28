@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: watson-expiry-monitoring-api
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: PORT
+        fromService:
+          type: web
+          name: watson-expiry-monitoring-api
+          property: port
+
+databases:
+  - name: watson-expiry-mongodb
+    plan: free
+    databaseName: watson_expiry
+    user: watson_user
