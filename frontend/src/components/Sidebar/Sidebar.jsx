@@ -1,9 +1,11 @@
-import { LayoutDashboard, BarChart3 } from "lucide-react";
+import { LayoutDashboard, BarChart3, LogOut } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 const Sidebar = ({ onNavigate }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout, user } = useAuth();
 
   const navigationItems = [
     {
@@ -26,12 +28,8 @@ const Sidebar = ({ onNavigate }) => {
   };
 
   const handleLogout = () => {
-    // Clear localStorage
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-
-    // Redirect to login page
-    navigate("/login");
+    logout();
+    navigate("/");
     if (typeof onNavigate === "function") onNavigate();
   };
 
@@ -136,9 +134,24 @@ const Sidebar = ({ onNavigate }) => {
         ))}
       </nav>
 
-      {/* Footer Section */}
+      {/* User Info and Logout */}
       <div className="border-t border-white/20 p-4 flex-shrink-0">
-        <p className="text-xs text-white/60 text-center">
+        {user && (
+          <div className="mb-3">
+            <p className="text-sm text-white/80">Welcome,</p>
+            <p className="text-sm font-medium text-white">{user.username}</p>
+          </div>
+        )}
+
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center space-x-2 p-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+        >
+          <LogOut size={18} />
+          <span>Logout</span>
+        </button>
+
+        <p className="text-xs text-white/60 text-center mt-3">
           © {new Date().getFullYear()} Watsons
         </p>
       </div>

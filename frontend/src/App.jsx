@@ -1,10 +1,11 @@
+import { AuthProvider } from "./contexts/AuthContext";
 import { Routers } from "./Routers/Routers";
 
 const App = () => {
   return (
-    <div>
+    <AuthProvider>
       <Routers />
-    </div>
+    </AuthProvider>
   );
 };
 

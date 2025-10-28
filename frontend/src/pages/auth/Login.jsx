@@ -1,11 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import axios from "axios";
+import { useAuth } from "../../contexts/AuthContext";
+import { API_BASE_URL } from "../../config/api";
 
 const Login = () => {
+  const navigate = useNavigate();
+  const { login, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     username: "",
     password: "",
   });
+  const [loading, setLoading] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -23,9 +37,27 @@ const Login = () => {
       return;
     }
 
-    // TODO: Implement login logic here
-    console.log("Login attempt:", formData);
-    toast.success("Login successful!");
+    setLoading(true);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/users/login`, {
+        username: formData.username,
+        password: formData.password,
+      });
+
+      // Store user data and token
+      login({
+        _id: response.data._id,
+        username: response.data.username,
+        token: response.data.token,
+      });
+
+      toast.success("Login successful!");
+      navigate("/dashboard");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -110,9 +142,10 @@ const Login = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-[#019e97] text-white py-3 px-4 rounded-lg font-semibold hover:bg-[#017a75] transition-colors shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-transform duration-200"
+              disabled={loading}
+              className="w-full bg-[#019e97] text-white py-3 px-4 rounded-lg font-semibold hover:bg-[#017a75] transition-colors shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-transform duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign In
+              {loading ? "Signing In..." : "Sign In"}
             </button>
           </form>
 

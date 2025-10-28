@@ -1,5 +1,12 @@
 import User from "../models/userModel.js";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+
+const generateToken = (userId) => {
+  return jwt.sign({ userId }, process.env.JWT_SECRET || "your-secret-key", {
+    expiresIn: "7d",
+  });
+};
 
 // @desc    Register new user
 // @route   POST /api/users/register
@@ -23,9 +30,12 @@ export const registerUser = async (req, res) => {
       password: hashedPassword,
     });
 
+    const token = generateToken(user._id);
+
     res.status(201).json({
       _id: user.id,
       username: user.username,
+      token,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -44,9 +54,12 @@ export const loginUser = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Invalid password" });
 
+    const token = generateToken(user._id);
+
     res.status(200).json({
       _id: user.id,
       username: user.username,
+      token,
       message: "Login successful",
     });
   } catch (error) {
