@@ -35,7 +35,7 @@ const Sidebar = ({ onNavigate }) => {
 
   const handleLogout = () => {
     logout();
-    navigate("/");
+    navigate("/login");
     if (typeof onNavigate === "function") onNavigate();
   };
 
