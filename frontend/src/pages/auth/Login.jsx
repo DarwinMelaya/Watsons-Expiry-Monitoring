@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "axios";
@@ -13,6 +13,7 @@ const Login = () => {
     password: "",
   });
   const [loading, setLoading] = useState(false);
+  const abortControllerRef = useRef(null);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -20,6 +21,35 @@ const Login = () => {
       navigate("/dashboard");
     }
   }, [isAuthenticated, navigate]);
+
+  // Reset state when component mounts (e.g., after logout or failed login)
+  useEffect(() => {
+    // Clear any previous loading state
+    setLoading(false);
+
+    // Reset abort controller
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = null;
+
+    // Clear form on mount to ensure fresh state
+    setFormData({
+      username: "",
+      password: "",
+    });
+  }, []);
+
+  // Cleanup: cancel request if component unmounts
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      setLoading(false);
+    };
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,31 +62,94 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Prevent multiple simultaneous submissions
+    if (loading) {
+      return;
+    }
+
     if (!formData.username || !formData.password) {
       toast.error("Please fill in all fields");
       return;
     }
 
-    setLoading(true);
-    try {
-      const response = await axios.post(`${API_BASE_URL}/users/login`, {
-        username: formData.username,
-        password: formData.password,
-      });
+    // Cancel previous request if any
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
 
-      // Store user data and token
-      login({
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
+    setLoading(true);
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/users/login`,
+        {
+          username: formData.username.trim(),
+          password: formData.password,
+        },
+        {
+          timeout: 10000, // 10 seconds timeout
+          signal: abortControllerRef.current.signal,
+        }
+      );
+
+      // Store user data and token immediately
+      const userData = {
         _id: response.data._id,
         username: response.data.username,
         token: response.data.token,
+      };
+
+      login(userData);
+
+      // Clear form
+      setFormData({
+        username: "",
+        password: "",
       });
 
+      // Ensure React state update completes before navigation
+      await Promise.resolve();
+
+      navigate("/dashboard", { replace: true });
       toast.success("Login successful!");
-      navigate("/dashboard");
+
+      // Reset abort controller
+      abortControllerRef.current = null;
     } catch (error) {
-      toast.error(error.response?.data?.message || "Login failed");
+      // Don't show error if request was cancelled
+      if (
+        error.name === "CanceledError" ||
+        error.name === "AbortError" ||
+        error.code === "ERR_CANCELED"
+      ) {
+        return;
+      }
+
+      if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
+        toast.error("Request timed out. Please try again.");
+      } else {
+        toast.error(error.response?.data?.message || "Login failed");
+      }
+
+      // Clear password field on error for security
+      setFormData((prev) => ({
+        ...prev,
+        password: "",
+      }));
     } finally {
+      // Always reset loading state
       setLoading(false);
+
+      // Clean up abort controller if not already cleared
+      if (
+        abortControllerRef.current &&
+        !abortControllerRef.current.signal.aborted
+      ) {
+        abortControllerRef.current = null;
+      }
     }
   };
 

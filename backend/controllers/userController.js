@@ -33,7 +33,7 @@ export const registerUser = async (req, res) => {
     const token = generateToken(user._id);
 
     res.status(201).json({
-      _id: user.id,
+      _id: user._id.toString(),
       username: user.username,
       token,
     });
@@ -57,7 +57,7 @@ export const loginUser = async (req, res) => {
     const token = generateToken(user._id);
 
     res.status(200).json({
-      _id: user.id,
+      _id: user._id.toString(),
       username: user.username,
       token,
       message: "Login successful",

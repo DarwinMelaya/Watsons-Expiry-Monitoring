@@ -13,19 +13,29 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    // Check for stored user data in localStorage
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    // Check for stored user data in localStorage synchronously for immediate access
+    try {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+      }
+    } catch (error) {
+      console.error("Error parsing stored user:", error);
+      localStorage.removeItem("user");
+    } finally {
+      setLoading(false);
+      setInitialized(true);
     }
-    setLoading(false);
   }, []);
 
   const login = (userData) => {
-    setUser(userData);
+    // Update state and localStorage synchronously
     localStorage.setItem("user", JSON.stringify(userData));
+    setUser(userData);
   };
 
   const logout = () => {
@@ -38,7 +48,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     isAuthenticated: !!user,
-    loading,
+    loading: loading && !initialized, // Only show loading during initial check
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
