@@ -160,7 +160,12 @@ const Login = () => {
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Header Section */}
           <div className="bg-[#019e97] px-8 py-6 text-center">
-            <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
+            <img
+              src="/logo.png"
+              alt="Watsons Logo"
+              className="mx-auto mb-3 h-16 sm:h-20 w-auto object-contain"
+            />
+
             <p className="text-white/90 text-sm">Sign in to your account</p>
           </div>
 
