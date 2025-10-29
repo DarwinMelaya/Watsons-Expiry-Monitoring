@@ -43,8 +43,18 @@ const Monitoring = () => {
     }
   };
 
-  const handleItemAdded = (newItem) => {
-    setProducts([...products, newItem]);
+  const handleItemAdded = (updatedItem) => {
+    // Check if item already exists (for append/replace operations)
+    const existingIndex = products.findIndex((p) => p._id === updatedItem._id);
+    if (existingIndex !== -1) {
+      // Update existing item
+      const updatedProducts = [...products];
+      updatedProducts[existingIndex] = updatedItem;
+      setProducts(updatedProducts);
+    } else {
+      // Add new item
+      setProducts([...products, updatedItem]);
+    }
   };
 
   const handleShowExpiring = async () => {

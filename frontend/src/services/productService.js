@@ -35,3 +35,21 @@ export const getExpiringProducts = async (days = 30) => {
   const response = await axiosInstance.get(`/products/expiring/${days}`);
   return response.data;
 };
+
+// Check if product with same SKU and month exists
+export const checkDuplicateProduct = async (sku, expiry) => {
+  const response = await axiosInstance.get(
+    `/products/check?sku=${encodeURIComponent(sku)}&expiry=${encodeURIComponent(
+      expiry
+    )}`
+  );
+  return response.data;
+};
+
+// Append quantity to existing product
+export const appendProductQuantity = async (id, quantity) => {
+  const response = await axiosInstance.put(`/products/${id}/append`, {
+    quantity,
+  });
+  return response.data;
+};

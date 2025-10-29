@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { createProduct } from "../../services/productService";
+import {
+  createProduct,
+  checkDuplicateProduct,
+  appendProductQuantity,
+  updateProduct,
+} from "../../services/productService";
 import { X } from "lucide-react";
 
 const AddExpiryModal = ({ isOpen, onClose, onItemAdded }) => {
@@ -11,6 +16,8 @@ const AddExpiryModal = ({ isOpen, onClose, onItemAdded }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [duplicateItem, setDuplicateItem] = useState(null);
+  const [showAppendReplace, setShowAppendReplace] = useState(false);
 
   const handleInputChange = (e) => {
     setNewItem({
@@ -24,6 +31,21 @@ const AddExpiryModal = ({ isOpen, onClose, onItemAdded }) => {
     try {
       setLoading(true);
       setError(null);
+
+      // Check if product with same SKU and month exists
+      const duplicateCheck = await checkDuplicateProduct(
+        newItem.sku,
+        newItem.expiry
+      );
+
+      if (duplicateCheck.exists) {
+        setDuplicateItem(duplicateCheck.item);
+        setShowAppendReplace(true);
+        setLoading(false);
+        return;
+      }
+
+      // No duplicate, create new product
       const itemData = {
         sku: newItem.sku,
         description: newItem.description,
@@ -41,13 +63,149 @@ const AddExpiryModal = ({ isOpen, onClose, onItemAdded }) => {
     }
   };
 
+  const handleAppend = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const updatedItem = await appendProductQuantity(
+        duplicateItem._id,
+        parseInt(newItem.quantity)
+      );
+      onItemAdded(updatedItem);
+      setNewItem({ sku: "", description: "", expiry: "", quantity: "" });
+      setDuplicateItem(null);
+      setShowAppendReplace(false);
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to append quantity");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReplace = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const updatedItem = await updateProduct(duplicateItem._id, {
+        quantity: parseInt(newItem.quantity),
+        description: newItem.description, // Update description too
+      });
+      onItemAdded(updatedItem);
+      setNewItem({ sku: "", description: "", expiry: "", quantity: "" });
+      setDuplicateItem(null);
+      setShowAppendReplace(false);
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to replace quantity");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelAppendReplace = () => {
+    setShowAppendReplace(false);
+    setDuplicateItem(null);
+  };
+
   const handleClose = () => {
     setNewItem({ sku: "", description: "", expiry: "", quantity: "" });
     setError(null);
+    setDuplicateItem(null);
+    setShowAppendReplace(false);
     onClose();
   };
 
   if (!isOpen) return null;
+
+  // Append/Replace Confirmation Modal
+  if (showAppendReplace && duplicateItem) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black/50"
+          onClick={handleCancelAppendReplace}
+        />
+
+        {/* Modal */}
+        <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-800">
+              Product Already Exists
+            </h2>
+            <button
+              onClick={handleCancelAppendReplace}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="p-6">
+            <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800 mb-2">
+                A product with SKU{" "}
+                <span className="font-semibold">"{duplicateItem.sku}"</span>{" "}
+                already exists for the same expiry month.
+              </p>
+              <div className="text-sm text-gray-700">
+                <p>
+                  <span className="font-medium">Current Quantity:</span>{" "}
+                  {duplicateItem.quantity}
+                </p>
+                <p>
+                  <span className="font-medium">New Quantity:</span>{" "}
+                  {newItem.quantity}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={handleAppend}
+                disabled={loading}
+                className="w-full px-4 py-3 bg-[#019e97] text-white rounded-lg hover:bg-[#019e97]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                {loading
+                  ? "Processing..."
+                  : `Append (${duplicateItem.quantity} + ${
+                      newItem.quantity
+                    } = ${
+                      parseInt(duplicateItem.quantity) +
+                      parseInt(newItem.quantity)
+                    })`}
+              </button>
+              <button
+                onClick={handleReplace}
+                disabled={loading}
+                className="w-full px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                {loading
+                  ? "Processing..."
+                  : `Replace (Update to ${newItem.quantity})`}
+              </button>
+              <button
+                onClick={handleCancelAppendReplace}
+                disabled={loading}
+                className="w-full px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+
+            {error && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600 text-sm">{error}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">

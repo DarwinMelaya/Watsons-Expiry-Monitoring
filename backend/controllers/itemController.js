@@ -7,14 +7,7 @@ export const createProduct = async (req, res) => {
     const { sku, description, expiry, quantity } = req.body;
     const userId = req.user.userId;
 
-    // Check if product with same SKU already exists
-    const existingItem = await Item.findOne({ sku });
-    if (existingItem) {
-      return res
-        .status(400)
-        .json({ message: "Product with this SKU already exists" });
-    }
-
+    // Note: Frontend will check for duplicates by SKU and month before calling this
     // Create product
     const item = await Item.create({
       sku,
@@ -148,6 +141,71 @@ export const getExpiringProducts = async (req, res) => {
     }).sort({ expiry: 1 });
 
     res.status(200).json(expiringProducts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Check if product with same SKU and month exists
+// @route   GET /api/products/check?sku=...&expiry=...
+export const checkDuplicateProduct = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { sku, expiry } = req.query;
+
+    const expiryDate = new Date(expiry);
+    const year = expiryDate.getFullYear();
+    const month = expiryDate.getMonth();
+
+    // Find products with same SKU and same year/month
+    const existingItems = await Item.find({
+      user: userId,
+      sku: sku,
+    });
+
+    const matchingItem = existingItems.find((item) => {
+      const itemDate = new Date(item.expiry);
+      return itemDate.getFullYear() === year && itemDate.getMonth() === month;
+    });
+
+    if (matchingItem) {
+      return res.status(200).json({
+        exists: true,
+        item: {
+          _id: matchingItem._id,
+          sku: matchingItem.sku,
+          description: matchingItem.description,
+          expiry: matchingItem.expiry,
+          quantity: matchingItem.quantity,
+        },
+      });
+    }
+
+    res.status(200).json({ exists: false });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Append quantity to existing product
+// @route   PUT /api/products/:id/append
+export const appendProductQuantity = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { quantity } = req.body;
+
+    const product = await Item.findOne({ _id: req.params.id, user: userId });
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    const updatedProduct = await Item.findByIdAndUpdate(
+      req.params.id,
+      { quantity: product.quantity + parseInt(quantity) },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json(updatedProduct);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
