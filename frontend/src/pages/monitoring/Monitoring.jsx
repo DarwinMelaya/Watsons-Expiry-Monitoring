@@ -4,26 +4,67 @@ import {
   deleteProduct,
   getExpiringProducts,
 } from "../../services/productService";
+import { getCategories } from "../../services/categoryService";
 import AddExpiryModal from "../../components/modal/AddExpiryModal";
-import { Plus, RefreshCw, Filter } from "lucide-react";
+import { Plus, RefreshCw, Filter, X } from "lucide-react";
 
 const Monitoring = () => {
   const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]); // Store all products for filtering
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filterDays, setFilterDays] = useState(30);
-  const [showExpiring, setShowExpiring] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [categories, setCategories] = useState([]);
+
+  // Filter states
+  const [filters, setFilters] = useState({
+    month: "",
+    year: "",
+    category: "",
+  });
 
   useEffect(() => {
     fetchProducts();
+    fetchCategories();
   }, []);
+
+  useEffect(() => {
+    // Apply filters whenever filters or allProducts change
+    let filtered = [...allProducts];
+
+    // Filter by month
+    if (filters.month) {
+      filtered = filtered.filter((product) => {
+        const expiryDate = new Date(product.expiry);
+        return expiryDate.getMonth() === parseInt(filters.month);
+      });
+    }
+
+    // Filter by year
+    if (filters.year) {
+      filtered = filtered.filter((product) => {
+        const expiryDate = new Date(product.expiry);
+        return expiryDate.getFullYear() === parseInt(filters.year);
+      });
+    }
+
+    // Filter by category
+    if (filters.category) {
+      filtered = filtered.filter((product) => {
+        return product.category && product.category._id === filters.category;
+      });
+    }
+
+    setProducts(filtered);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, allProducts]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
       setError(null);
       const data = await getProducts();
+      setAllProducts(data);
       setProducts(data);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to fetch products");
@@ -32,11 +73,21 @@ const Monitoring = () => {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const data = await getCategories();
+      setCategories(data);
+    } catch (err) {
+      console.error("Failed to fetch categories:", err);
+    }
+  };
+
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this item?")) {
       try {
         await deleteProduct(id);
-        setProducts(products.filter((p) => p._id !== id));
+        setAllProducts(allProducts.filter((p) => p._id !== id));
+        // Filters will be applied automatically via useEffect
       } catch (err) {
         setError(err.response?.data?.message || "Failed to delete product");
       }
@@ -44,34 +95,78 @@ const Monitoring = () => {
   };
 
   const handleItemAdded = (updatedItem) => {
-    // Check if item already exists (for append/replace operations)
-    const existingIndex = products.findIndex((p) => p._id === updatedItem._id);
+    // Check if item already exists in allProducts (for append/replace operations)
+    const existingIndex = allProducts.findIndex(
+      (p) => p._id === updatedItem._id
+    );
     if (existingIndex !== -1) {
-      // Update existing item
-      const updatedProducts = [...products];
-      updatedProducts[existingIndex] = updatedItem;
-      setProducts(updatedProducts);
+      // Update existing item in allProducts
+      const updatedAllProducts = [...allProducts];
+      updatedAllProducts[existingIndex] = updatedItem;
+      setAllProducts(updatedAllProducts);
     } else {
-      // Add new item
-      setProducts([...products, updatedItem]);
+      // Add new item to allProducts
+      setAllProducts([...allProducts, updatedItem]);
     }
+    // Filters will be applied automatically via useEffect
   };
 
-  const handleShowExpiring = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getExpiringProducts(filterDays);
-      setProducts(data);
-      setShowExpiring(true);
-    } catch (err) {
-      setError(
-        err.response?.data?.message || "Failed to fetch expiring products"
-      );
-    } finally {
-      setLoading(false);
-    }
+  const handleFilterChange = (filterType, value) => {
+    setFilters((prev) => ({
+      ...prev,
+      [filterType]: value,
+    }));
   };
+
+  const clearFilters = () => {
+    setFilters({
+      month: "",
+      year: "",
+      category: "",
+    });
+  };
+
+  const hasActiveFilters = filters.month || filters.year || filters.category;
+
+  // Get unique years from products
+  const getAvailableYears = () => {
+    const years = new Set();
+    allProducts.forEach((product) => {
+      const year = new Date(product.expiry).getFullYear();
+      years.add(year);
+    });
+    return Array.from(years).sort((a, b) => b - a);
+  };
+
+  // Get unique months based on selected year or all months
+  const getAvailableMonths = () => {
+    const months = new Set();
+    allProducts.forEach((product) => {
+      const expiryDate = new Date(product.expiry);
+      if (
+        !filters.year ||
+        expiryDate.getFullYear() === parseInt(filters.year)
+      ) {
+        months.add(expiryDate.getMonth());
+      }
+    });
+    return Array.from(months).sort((a, b) => a - b);
+  };
+
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
 
   const getDaysUntilExpiry = (expiryDate) => {
     const now = new Date();
@@ -147,44 +242,130 @@ const Monitoring = () => {
 
         {/* Filter Section */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Filter size={20} className="text-gray-600" />
-            <h2 className="text-lg font-semibold text-gray-800">
-              Filter Options
-            </h2>
-          </div>
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2">
-              <span className="text-gray-700">Show expiring within:</span>
-              <input
-                type="number"
-                value={filterDays}
-                onChange={(e) => setFilterDays(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg w-24 focus:ring-2 focus:ring-[#019e97] focus:border-[#019e97]"
-                min="1"
-                disabled={showExpiring}
-              />
-              <span className="text-gray-700">days</span>
-            </label>
-            <button
-              onClick={handleShowExpiring}
-              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50"
-              disabled={showExpiring}
-            >
-              Filter Expiring
-            </button>
-            {showExpiring && (
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Filter size={20} className="text-gray-600" />
+              <h2 className="text-lg font-semibold text-gray-800">
+                Filter Options
+              </h2>
+            </div>
+            {hasActiveFilters && (
               <button
-                onClick={() => {
-                  setShowExpiring(false);
-                  fetchProducts();
-                }}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                onClick={clearFilters}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                Show All
+                <X size={16} />
+                Clear Filters
               </button>
             )}
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Year Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Filter by Year
+              </label>
+              <select
+                value={filters.year}
+                onChange={(e) => handleFilterChange("year", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#019e97] focus:border-[#019e97] transition-colors bg-white"
+              >
+                <option value="">All Years</option>
+                {getAvailableYears().map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Month Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Filter by Month
+              </label>
+              <select
+                value={filters.month}
+                onChange={(e) => handleFilterChange("month", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#019e97] focus:border-[#019e97] transition-colors bg-white"
+              >
+                <option value="">All Months</option>
+                {getAvailableMonths().map((monthIndex) => (
+                  <option key={monthIndex} value={monthIndex}>
+                    {monthNames[monthIndex]}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Category Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Filter by Category
+              </label>
+              <select
+                value={filters.category}
+                onChange={(e) => handleFilterChange("category", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#019e97] focus:border-[#019e97] transition-colors bg-white"
+              >
+                <option value="">All Categories</option>
+                {categories.map((category) => (
+                  <option key={category._id} value={category._id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Active Filters Display */}
+          {hasActiveFilters && (
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <p className="text-sm font-medium text-gray-700 mb-2">
+                Active Filters:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {filters.year && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">
+                    Year: {filters.year}
+                    <button
+                      onClick={() => handleFilterChange("year", "")}
+                      className="ml-1 hover:text-blue-900"
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                )}
+                {filters.month && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-medium">
+                    Month: {monthNames[parseInt(filters.month)]}
+                    <button
+                      onClick={() => handleFilterChange("month", "")}
+                      className="ml-1 hover:text-green-900"
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                )}
+                {filters.category && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-sm font-medium">
+                    Category:{" "}
+                    {categories.find((c) => c._id === filters.category)?.name}
+                    <button
+                      onClick={() => handleFilterChange("category", "")}
+                      className="ml-1 hover:text-purple-900"
+                    >
+                      <X size={14} />
+                    </button>
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Showing {products.length} of {allProducts.length} products
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Products Table */}
@@ -229,8 +410,18 @@ const Monitoring = () => {
                         </div>
                         <p className="text-lg font-medium">No products found</p>
                         <p className="text-sm">
-                          Add your first item to get started
+                          {hasActiveFilters
+                            ? "Try adjusting your filters or clear them to see all products"
+                            : "Add your first item to get started"}
                         </p>
+                        {hasActiveFilters && (
+                          <button
+                            onClick={clearFilters}
+                            className="mt-2 px-4 py-2 text-sm text-[#019e97] border border-[#019e97] rounded-lg hover:bg-[#019e97] hover:text-white transition-colors"
+                          >
+                            Clear All Filters
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
