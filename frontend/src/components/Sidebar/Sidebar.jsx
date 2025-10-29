@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { LayoutDashboard, BarChart3, Settings, LogOut } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import LogoutConfirmationModal from "../modal/LogoutConfirmationModal";
 
 const Sidebar = ({ onNavigate }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, user } = useAuth();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const navigationItems = [
     {
@@ -33,10 +36,19 @@ const Sidebar = ({ onNavigate }) => {
     if (typeof onNavigate === "function") onNavigate();
   };
 
-  const handleLogout = () => {
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  const handleLogoutConfirm = () => {
     logout();
+    setShowLogoutModal(false);
     navigate("/login");
     if (typeof onNavigate === "function") onNavigate();
+  };
+
+  const handleLogoutCancel = () => {
+    setShowLogoutModal(false);
   };
 
   return (
@@ -147,7 +159,7 @@ const Sidebar = ({ onNavigate }) => {
         )}
 
         <button
-          onClick={handleLogout}
+          onClick={handleLogoutClick}
           className="w-full flex items-center justify-center space-x-2 p-3 rounded-lg text-white/80 hover:bg-white/10 hover:text-white transition-colors"
         >
           <LogOut size={18} />
@@ -158,6 +170,13 @@ const Sidebar = ({ onNavigate }) => {
           © {new Date().getFullYear()} Watsons
         </p>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <LogoutConfirmationModal
+        isOpen={showLogoutModal}
+        onClose={handleLogoutCancel}
+        onConfirm={handleLogoutConfirm}
+      />
     </div>
   );
 };
