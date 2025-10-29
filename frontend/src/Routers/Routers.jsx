@@ -8,13 +8,14 @@ import { Login, Dashboard, Monitoring, Maintenance } from "../pages";
 import Layout from "../components/layout/Layout";
 import ProtectedRoutes from "../components/security/ProtectedRoutes";
 import IntroLoading from "../components/IntroLoading";
+import LoginWithIntro from "../pages/auth/LoginWithIntro";
 
 export const Routers = () => {
   return (
     <Router>
       <Routes>
-        <Route path="/intro" element={<IntroLoading />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/intro" element={<IntroLoading navigateTo="/login" />} />
+        <Route path="/login" element={<LoginWithIntro />} />
         <Route element={<ProtectedRoutes />}>
           <Route element={<Layout />}>
             <Route path="/dashboard" element={<Dashboard />} />

@@ -2,17 +2,20 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./IntroLoading.css";
 
-const IntroLoading = () => {
+const IntroLoading = ({ onComplete, navigateTo }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Navigate to login after 3 seconds
     const timer = setTimeout(() => {
-      navigate("/login");
+      if (onComplete) {
+        onComplete();
+      } else if (navigateTo) {
+        navigate(navigateTo);
+      }
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [navigate]);
+  }, [navigate, onComplete, navigateTo]);
 
   return (
     <div className="intro-loading">

@@ -21,6 +21,7 @@ import {
   TrendingUp,
   Activity,
   Printer,
+  Search,
 } from "lucide-react";
 
 const Monitoring = () => {
@@ -42,6 +43,7 @@ const Monitoring = () => {
     year: "",
     category: "",
   });
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchProducts();
@@ -49,8 +51,23 @@ const Monitoring = () => {
   }, []);
 
   useEffect(() => {
-    // Apply filters whenever filters or allProducts change
+    // Apply filters whenever filters, searchQuery, or allProducts change
     let filtered = [...allProducts];
+
+    // Search filter (by SKU, description, or category name)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter((product) => {
+        const sku = product.sku?.toLowerCase() || "";
+        const description = product.description?.toLowerCase() || "";
+        const categoryName = product.category?.name?.toLowerCase() || "";
+        return (
+          sku.includes(query) ||
+          description.includes(query) ||
+          categoryName.includes(query)
+        );
+      });
+    }
 
     // Filter by month
     if (filters.month) {
@@ -77,7 +94,7 @@ const Monitoring = () => {
 
     setProducts(filtered);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, allProducts]);
+  }, [filters, searchQuery, allProducts]);
 
   const fetchProducts = async () => {
     try {
@@ -187,9 +204,11 @@ const Monitoring = () => {
       year: "",
       category: "",
     });
+    setSearchQuery("");
   };
 
-  const hasActiveFilters = filters.month || filters.year || filters.category;
+  const hasActiveFilters =
+    filters.month || filters.year || filters.category || searchQuery.trim();
 
   // Get unique years from products
   const getAvailableYears = () => {
@@ -262,6 +281,7 @@ const Monitoring = () => {
 
   const getFilterSummary = () => {
     const summary = [];
+    if (searchQuery.trim()) summary.push(`Search: "${searchQuery}"`);
     if (filters.year) summary.push(`Year: ${filters.year}`);
     if (filters.month)
       summary.push(`Month: ${monthNames[parseInt(filters.month)]}`);
@@ -658,6 +678,34 @@ const Monitoring = () => {
               )}
             </div>
 
+            {/* Search Bar */}
+            <div className="mb-4 sm:mb-5">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Search Products
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by SKU, description, or category..."
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#019e97] focus:border-[#019e97] transition-all bg-white text-sm placeholder-gray-400"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label="Clear search"
+                  >
+                    <X size={18} />
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {/* Year Filter */}
               <div>
@@ -726,6 +774,18 @@ const Monitoring = () => {
                   Active Filters:
                 </p>
                 <div className="flex flex-wrap gap-2 mb-3">
+                  {searchQuery.trim() && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-full text-xs sm:text-sm font-medium shadow-sm">
+                      Search: "{searchQuery}"
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="ml-0.5 hover:bg-orange-100 rounded-full p-0.5 transition-colors"
+                        aria-label="Clear search"
+                      >
+                        <X size={14} />
+                      </button>
+                    </span>
+                  )}
                   {filters.year && (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-xs sm:text-sm font-medium shadow-sm">
                       Year: {filters.year}
