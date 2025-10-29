@@ -4,7 +4,7 @@ import Item from "../models/itemModel.js";
 // @route   POST /api/products
 export const createProduct = async (req, res) => {
   try {
-    const { sku, description, expiry, quantity } = req.body;
+    const { sku, description, expiry, quantity, category } = req.body;
     const userId = req.user.userId;
 
     // Note: Frontend will check for duplicates by SKU and month before calling this
@@ -15,16 +15,23 @@ export const createProduct = async (req, res) => {
       expiry: new Date(expiry),
       quantity,
       user: userId,
+      ...(category && { category }),
     });
 
+    const populatedItem = await Item.findById(item._id).populate(
+      "category",
+      "name description"
+    );
+
     res.status(201).json({
-      _id: item._id,
-      sku: item.sku,
-      description: item.description,
-      expiry: item.expiry,
-      quantity: item.quantity,
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
+      _id: populatedItem._id,
+      sku: populatedItem.sku,
+      description: populatedItem.description,
+      expiry: populatedItem.expiry,
+      quantity: populatedItem.quantity,
+      category: populatedItem.category,
+      createdAt: populatedItem.createdAt,
+      updatedAt: populatedItem.updatedAt,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -36,7 +43,9 @@ export const createProduct = async (req, res) => {
 export const getProducts = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const products = await Item.find({ user: userId }).sort({ expiry: 1 });
+    const products = await Item.find({ user: userId })
+      .populate("category", "name description")
+      .sort({ expiry: 1 });
 
     res.status(200).json(products);
   } catch (error) {
@@ -49,7 +58,10 @@ export const getProducts = async (req, res) => {
 export const getProduct = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const product = await Item.findOne({ _id: req.params.id, user: userId });
+    const product = await Item.findOne({
+      _id: req.params.id,
+      user: userId,
+    }).populate("category", "name description");
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
@@ -66,7 +78,7 @@ export const getProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { sku, description, expiry, quantity } = req.body;
+    const { sku, description, expiry, quantity, category } = req.body;
 
     // Check if product exists and belongs to user
     const product = await Item.findOne({ _id: req.params.id, user: userId });
@@ -95,9 +107,10 @@ export const updateProduct = async (req, res) => {
         ...(description && { description }),
         ...(expiry && { expiry: new Date(expiry) }),
         ...(quantity !== undefined && { quantity }),
+        ...(category !== undefined && { category: category || null }),
       },
       { new: true, runValidators: true }
-    );
+    ).populate("category", "name description");
 
     res.status(200).json(updatedProduct);
   } catch (error) {
@@ -138,7 +151,9 @@ export const getExpiringProducts = async (req, res) => {
       user: userId,
       expiry: { $lte: futureDate },
       expiry: { $gte: new Date() }, // Not expired yet
-    }).sort({ expiry: 1 });
+    })
+      .populate("category", "name description")
+      .sort({ expiry: 1 });
 
     res.status(200).json(expiringProducts);
   } catch (error) {
@@ -169,14 +184,19 @@ export const checkDuplicateProduct = async (req, res) => {
     });
 
     if (matchingItem) {
+      const populatedItem = await Item.findById(matchingItem._id).populate(
+        "category",
+        "name description"
+      );
       return res.status(200).json({
         exists: true,
         item: {
-          _id: matchingItem._id,
-          sku: matchingItem.sku,
-          description: matchingItem.description,
-          expiry: matchingItem.expiry,
-          quantity: matchingItem.quantity,
+          _id: populatedItem._id,
+          sku: populatedItem.sku,
+          description: populatedItem.description,
+          expiry: populatedItem.expiry,
+          quantity: populatedItem.quantity,
+          category: populatedItem.category,
         },
       });
     }
@@ -203,7 +223,7 @@ export const appendProductQuantity = async (req, res) => {
       req.params.id,
       { quantity: product.quantity + parseInt(quantity) },
       { new: true, runValidators: true }
-    );
+    ).populate("category", "name description");
 
     res.status(200).json(updatedProduct);
   } catch (error) {

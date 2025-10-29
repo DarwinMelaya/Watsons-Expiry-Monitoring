@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   createProduct,
   checkDuplicateProduct,
   appendProductQuantity,
   updateProduct,
 } from "../../services/productService";
+import { getCategories } from "../../services/categoryService";
 import { X } from "lucide-react";
 
 const AddExpiryModal = ({ isOpen, onClose, onItemAdded }) => {
@@ -13,11 +14,33 @@ const AddExpiryModal = ({ isOpen, onClose, onItemAdded }) => {
     description: "",
     expiry: "",
     quantity: "",
+    category: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [duplicateItem, setDuplicateItem] = useState(null);
   const [showAppendReplace, setShowAppendReplace] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+
+  // Fetch categories when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchCategories();
+    }
+  }, [isOpen]);
+
+  const fetchCategories = async () => {
+    try {
+      setLoadingCategories(true);
+      const data = await getCategories();
+      setCategories(data);
+    } catch (err) {
+      console.error("Failed to fetch categories:", err);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     setNewItem({
@@ -51,10 +74,17 @@ const AddExpiryModal = ({ isOpen, onClose, onItemAdded }) => {
         description: newItem.description,
         expiry: newItem.expiry,
         quantity: parseInt(newItem.quantity),
+        ...(newItem.category && { category: newItem.category }),
       };
       const createdItem = await createProduct(itemData);
       onItemAdded(createdItem);
-      setNewItem({ sku: "", description: "", expiry: "", quantity: "" });
+      setNewItem({
+        sku: "",
+        description: "",
+        expiry: "",
+        quantity: "",
+        category: "",
+      });
       onClose();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to create product");
@@ -72,7 +102,13 @@ const AddExpiryModal = ({ isOpen, onClose, onItemAdded }) => {
         parseInt(newItem.quantity)
       );
       onItemAdded(updatedItem);
-      setNewItem({ sku: "", description: "", expiry: "", quantity: "" });
+      setNewItem({
+        sku: "",
+        description: "",
+        expiry: "",
+        quantity: "",
+        category: "",
+      });
       setDuplicateItem(null);
       setShowAppendReplace(false);
       onClose();
@@ -90,9 +126,16 @@ const AddExpiryModal = ({ isOpen, onClose, onItemAdded }) => {
       const updatedItem = await updateProduct(duplicateItem._id, {
         quantity: parseInt(newItem.quantity),
         description: newItem.description, // Update description too
+        ...(newItem.category && { category: newItem.category }),
       });
       onItemAdded(updatedItem);
-      setNewItem({ sku: "", description: "", expiry: "", quantity: "" });
+      setNewItem({
+        sku: "",
+        description: "",
+        expiry: "",
+        quantity: "",
+        category: "",
+      });
       setDuplicateItem(null);
       setShowAppendReplace(false);
       onClose();
@@ -109,7 +152,13 @@ const AddExpiryModal = ({ isOpen, onClose, onItemAdded }) => {
   };
 
   const handleClose = () => {
-    setNewItem({ sku: "", description: "", expiry: "", quantity: "" });
+    setNewItem({
+      sku: "",
+      description: "",
+      expiry: "",
+      quantity: "",
+      category: "",
+    });
     setError(null);
     setDuplicateItem(null);
     setShowAppendReplace(false);
@@ -292,6 +341,29 @@ const AddExpiryModal = ({ isOpen, onClose, onItemAdded }) => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#019e97] focus:border-[#019e97] transition-colors"
                 placeholder="Enter quantity"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Category
+              </label>
+              <select
+                name="category"
+                value={newItem.category}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#019e97] focus:border-[#019e97] transition-colors"
+              >
+                <option value="">Select a category (optional)</option>
+                {loadingCategories ? (
+                  <option disabled>Loading categories...</option>
+                ) : (
+                  categories.map((category) => (
+                    <option key={category._id} value={category._id}>
+                      {category.name}
+                    </option>
+                  ))
+                )}
+              </select>
             </div>
           </div>
 

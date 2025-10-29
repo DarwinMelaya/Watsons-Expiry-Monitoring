@@ -200,6 +200,9 @@ const Monitoring = () => {
                     Description
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Category
+                  </th>
+                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Quantity
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -217,7 +220,7 @@ const Monitoring = () => {
                 {products.length === 0 ? (
                   <tr>
                     <td
-                      colSpan="6"
+                      colSpan="7"
                       className="px-6 py-12 text-center text-gray-500"
                     >
                       <div className="flex flex-col items-center gap-2">
@@ -248,6 +251,19 @@ const Monitoring = () => {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-500">
                             {product.description}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">
+                            {product.category ? (
+                              <span className="inline-flex px-2 py-1 text-xs font-medium rounded-md bg-blue-50 text-blue-700">
+                                {product.category.name}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 italic">
+                                No category
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
