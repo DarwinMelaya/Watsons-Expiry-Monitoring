@@ -147,10 +147,13 @@ export const getExpiringProducts = async (req, res) => {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + days);
 
+    const now = new Date();
     const expiringProducts = await Item.find({
       user: userId,
-      expiry: { $lte: futureDate },
-      expiry: { $gte: new Date() }, // Not expired yet
+      expiry: {
+        $gte: now,
+        $lte: futureDate,
+      },
     })
       .populate("category", "name description")
       .sort({ expiry: 1 });
