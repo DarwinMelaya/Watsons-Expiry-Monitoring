@@ -7,6 +7,7 @@ import {
 import { getCategories } from "../../services/categoryService";
 import AddExpiryModal from "../../components/modal/AddExpiryModal";
 import DeleteExpiryModal from "../../components/modal/DeleteExpiryModal";
+import EditExpiryModal from "../../components/modal/EditExpiryModal";
 import { Plus, RefreshCw, Filter, X } from "lucide-react";
 
 const Monitoring = () => {
@@ -16,7 +17,9 @@ const Monitoring = () => {
   const [error, setError] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
+  const [productToEdit, setProductToEdit] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [categories, setCategories] = useState([]);
 
@@ -131,6 +134,31 @@ const Monitoring = () => {
       setAllProducts([...allProducts, updatedItem]);
     }
     // Filters will be applied automatically via useEffect
+  };
+
+  const handleEdit = (product) => {
+    setProductToEdit(product);
+    setShowEditModal(true);
+  };
+
+  const handleItemUpdated = (updatedItem) => {
+    // Update the item in allProducts
+    const existingIndex = allProducts.findIndex(
+      (p) => p._id === updatedItem._id
+    );
+    if (existingIndex !== -1) {
+      const updatedAllProducts = [...allProducts];
+      updatedAllProducts[existingIndex] = updatedItem;
+      setAllProducts(updatedAllProducts);
+    }
+    setShowEditModal(false);
+    setProductToEdit(null);
+    // Filters will be applied automatically via useEffect
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setProductToEdit(null);
   };
 
   const handleFilterChange = (filterType, value) => {
@@ -498,12 +526,21 @@ const Monitoring = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button
-                            onClick={() => handleDelete(product)}
-                            className="text-red-600 hover:text-red-900 transition-colors"
-                          >
-                            Delete
-                          </button>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => handleEdit(product)}
+                              className="text-[#019e97] hover:text-[#019e97]/80 transition-colors font-medium"
+                            >
+                              Edit
+                            </button>
+                            <span className="text-gray-300">|</span>
+                            <button
+                              onClick={() => handleDelete(product)}
+                              className="text-red-600 hover:text-red-900 transition-colors"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -520,6 +557,14 @@ const Monitoring = () => {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onItemAdded={handleItemAdded}
+      />
+
+      {/* Edit Product Modal */}
+      <EditExpiryModal
+        isOpen={showEditModal}
+        onClose={handleCloseEditModal}
+        onItemUpdated={handleItemUpdated}
+        product={productToEdit}
       />
 
       {/* Delete Product Modal */}
