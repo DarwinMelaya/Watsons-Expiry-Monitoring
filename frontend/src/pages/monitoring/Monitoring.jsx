@@ -6,6 +6,7 @@ import {
 } from "../../services/productService";
 import { getCategories } from "../../services/categoryService";
 import AddExpiryModal from "../../components/modal/AddExpiryModal";
+import DeleteExpiryModal from "../../components/modal/DeleteExpiryModal";
 import { Plus, RefreshCw, Filter, X } from "lucide-react";
 
 const Monitoring = () => {
@@ -14,6 +15,9 @@ const Monitoring = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [categories, setCategories] = useState([]);
 
   // Filter states
@@ -82,15 +86,33 @@ const Monitoring = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this item?")) {
-      try {
-        await deleteProduct(id);
-        setAllProducts(allProducts.filter((p) => p._id !== id));
-        // Filters will be applied automatically via useEffect
-      } catch (err) {
-        setError(err.response?.data?.message || "Failed to delete product");
-      }
+  const handleDelete = (product) => {
+    setProductToDelete(product);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!productToDelete) return;
+
+    try {
+      setDeleting(true);
+      setError(null);
+      await deleteProduct(productToDelete._id);
+      setAllProducts(allProducts.filter((p) => p._id !== productToDelete._id));
+      setShowDeleteModal(false);
+      setProductToDelete(null);
+      // Filters will be applied automatically via useEffect
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to delete product");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleCloseDeleteModal = () => {
+    if (!deleting) {
+      setShowDeleteModal(false);
+      setProductToDelete(null);
     }
   };
 
@@ -477,7 +499,7 @@ const Monitoring = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <button
-                            onClick={() => handleDelete(product._id)}
+                            onClick={() => handleDelete(product)}
                             className="text-red-600 hover:text-red-900 transition-colors"
                           >
                             Delete
@@ -498,6 +520,15 @@ const Monitoring = () => {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onItemAdded={handleItemAdded}
+      />
+
+      {/* Delete Product Modal */}
+      <DeleteExpiryModal
+        isOpen={showDeleteModal}
+        onClose={handleCloseDeleteModal}
+        onConfirm={handleConfirmDelete}
+        product={productToDelete}
+        loading={deleting}
       />
     </div>
   );
