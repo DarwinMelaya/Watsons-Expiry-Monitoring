@@ -42,23 +42,20 @@ const Sidebar = ({ onNavigate }) => {
   return (
     <div className="bg-[#019e97] h-screen w-64 flex flex-col">
       {/* Logo - Fixed at top */}
-      <div className="p-6 border-b border-[#019e97]/20 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white">
-            <span className="text-sm font-bold text-[#019e97]">W</span>
-          </div>
-          <div className="flex flex-col">
-            <h1 className="text-xl font-semibold">
-              <span className="text-white">WATSONS</span>
-            </h1>
-            <p className="text-xs text-white/80">Expiry Monitoring</p>
-          </div>
+      <div className="p-4 sm:p-6 border-b border-[#019e97]/20 flex-shrink-0 relative">
+        <div className="flex items-center justify-center">
+          <img
+            src="/logo.png"
+            alt="Watsons Logo"
+            className="h-12 sm:h-16 w-auto object-contain"
+            style={{ maxWidth: "100%" }}
+          />
         </div>
         {/* Close button for mobile */}
         {onNavigate && (
           <button
             onClick={onNavigate}
-            className="absolute top-3 right-3 text-white hover:text-white/80 transition-colors md:hidden"
+            className="absolute top-2 right-2 text-white hover:text-white/80 transition-colors md:hidden bg-white/10 hover:bg-white/20 rounded-lg p-1.5"
             aria-label="Close menu"
           >
             <svg
